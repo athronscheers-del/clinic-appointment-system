@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Login - MediCare Clinic</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a href="index.html" class="back-home">&larr; Back to Home</a>
+  <div class="auth-page">
+    <div class="auth-box">
+      <h2>🧑 Patient Login</h2>
+      <p class="auth-subtitle">Sign in to book and manage your appointments</p>
+
+      <div id="errorMsg" class="error-msg"></div>
+
+      <form id="patientLoginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required />
+        </div>
+        <button type="submit" class="btn btn-filled auth-btn">Sign In</button>
+      </form>
+
+      <div class="auth-footer">
+        Don't have an account? <a href="patient-register.html">Register here</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    document.getElementById('patientLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const result = await apiRequest('/auth/patient/login', { email, password });
+        saveSession(result.token, 'patient', result.user);
+        redirectByRole('patient');
+      } catch (err) {
+        showError('errorMsg', err.message);
+      }
+    });
+  </script>
+</body>
+</html>

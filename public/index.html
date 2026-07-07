@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediCare Clinic - Book Your Appointment</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">🩺 MediCare Clinic</div>
+    <ul class="nav-links">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#specializations">Specializations</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <div class="nav-buttons">
+      <button id="signInBtn" class="btn btn-outline">Sign In</button>
+      <button id="signUpBtn" class="btn btn-filled">Sign Up</button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero">
+    <div class="hero-text">
+      <h1>Your Health, Our Priority</h1>
+      <p>Book appointments with trusted specialists in just a few clicks.</p>
+      <button id="heroBookBtn" class="btn btn-filled large">Book an Appointment</button>
+    </div>
+  </section>
+
+  <!-- Specializations Section -->
+  <section id="specializations" class="specializations">
+    <h2>Our Specializations</h2>
+    <div class="spec-grid">
+      <div class="spec-card">❤️ Cardiology</div>
+      <div class="spec-card">🧠 Neurology</div>
+      <div class="spec-card">🧴 Dermatology</div>
+      <div class="spec-card">🧸 Pediatrics</div>
+      <div class="spec-card">🦴 Orthopedics</div>
+      <div class="spec-card">🤰 Gynecology</div>
+      <div class="spec-card">👁️ Ophthalmology</div>
+      <div class="spec-card">⚕️ General Medicine</div>
+    </div>
+  </section>
+
+  <!-- Sign In Modal -->
+  <div id="signInModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" data-close="signInModal">&times;</span>
+      <h2>Sign In As</h2>
+      <div class="role-options">
+        <a href="patient-login.html" class="role-btn">🧑 Patient</a>
+        <a href="doctor-login.html" class="role-btn">👨‍⚕️ Doctor</a>
+        <a href="admin-login.html" class="role-btn">🛠️ Administrator</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2026 MediCare Clinic. All rights reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

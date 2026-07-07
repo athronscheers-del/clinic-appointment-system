@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login - MediCare Clinic</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a href="index.html" class="back-home">&larr; Back to Home</a>
+  <div class="auth-page">
+    <div class="auth-box">
+      <h2>🛠️ Administrator Login</h2>
+      <p class="auth-subtitle">Restricted access — admin access code required</p>
+
+      <div id="errorMsg" class="error-msg"></div>
+
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" required />
+        </div>
+        <div class="form-group">
+          <label for="accessCode">Admin Access Code</label>
+          <input type="text" id="accessCode" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required />
+        </div>
+        <button type="submit" class="btn btn-filled auth-btn">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const accessCode = document.getElementById('accessCode').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const result = await apiRequest('/auth/admin/login', { email, accessCode, password });
+        saveSession(result.token, 'admin', result.user);
+        redirectByRole('admin');
+      } catch (err) {
+        showError('errorMsg', err.message);
+      }
+    });
+  </script>
+</body>
+</html>
