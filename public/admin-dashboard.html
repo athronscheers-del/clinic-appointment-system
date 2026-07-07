@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - MediCare Clinic</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">🩺 MediCare Clinic</div>
+    <div class="nav-buttons">
+      <span class="welcome-text">🛠️ Admin Panel</span>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <h1>Generate Doctor Code</h1>
+    <p class="dashboard-subtitle">Create a new authorization code for doctor registration</p>
+
+    <div class="code-generator">
+      <button id="generateCodeBtn" class="btn btn-filled">Generate New Code</button>
+      <span id="generatedCode" class="generated-code"></span>
+    </div>
+
+    <hr class="section-divider" />
+
+    <h2>All Doctors</h2>
+    <div id="doctorTable" class="table-container">
+      <p>Loading doctors...</p>
+    </div>
+
+    <hr class="section-divider" />
+
+    <h2>All Appointments</h2>
+    <div id="appointmentTable" class="table-container">
+      <p>Loading appointments...</p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // ---------- Guard: must be logged in as admin ----------
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+
+    if (!token || role !== 'admin') {
+      window.location.href = 'admin-login.html';
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    });
+
+    // ---------- Generate doctor code ----------
+    document.getElementById('generateCodeBtn').addEventListener('click', async () => {
+      try {
+        const res = await fetch(`${API_BASE}/admin/doctor-codes`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message);
+
+        document.getElementById('generatedCode').textContent = `✅ New code: ${result.code}`;
+        loadDoctors(); // refresh in case list depends on codes later
+      } catch (err) {
+        document.getElementById('generatedCode').textContent = `❌ ${err.message}`;
+      }
+    });
+
+    // ---------- Load all doctors ----------
+    async function loadDoctors() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/doctors`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const doctors = await res.json();
+
+        const container = document.getElementById('doctorTable');
+        if (doctors.length === 0) {
+          container.innerHTML = '<p>No doctors registered yet.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Email</th><th>Specialization</th><th>Experience</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${doctors.map(doc => `
+                <tr>
+                  <td>${doc.full_name}</td>
+                  <td>${doc.email}</td>
+                  <td>${doc.specialization}</td>
+                  <td>${doc.years_experience} yrs</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        document.getElementById('doctorTable').innerHTML = '<p>Failed to load doctors.</p>';
+      }
+    }
+
+    // ---------- Load all appointments ----------
+    async function loadAppointments() {
+      try {
+        const res = await fetch(`${API_BASE}/admin/appointments`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const appointments = await res.json();
+
+        const container = document.getElementById('appointmentTable');
+        if (appointments.length === 0) {
+          container.innerHTML = '<p>No appointments yet.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${appointments.map(appt => `
+                <tr>
+                  <td>${appt.patient_name}</td>
+                  <td>${appt.doctor_name}</td>
+                  <td>${new Date(appt.appointment_date).toLocaleDateString()}</td>
+                  <td>${appt.appointment_time}</td>
+                  <td><span class="status-badge status-${appt.status}">${appt.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } catch (err) {
+        document.getElementById('appointmentTable').innerHTML = '<p>Failed to load appointments.</p>';
+      }
+    }
+
+    loadDoctors();
+    loadAppointments();
+  </script>
+</body>
+</html>

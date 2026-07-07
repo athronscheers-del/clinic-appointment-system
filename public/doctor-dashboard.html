@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doctor Dashboard - MediCare Clinic</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">🩺 MediCare Clinic</div>
+    <div class="nav-buttons">
+      <span id="welcomeText" class="welcome-text"></span>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <h1>My Appointments</h1>
+    <p class="dashboard-subtitle">Patients who have booked appointments with you</p>
+
+    <div id="appointmentList" class="appointment-list">
+      <p>Loading appointments...</p>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // ---------- Guard: must be logged in as doctor ----------
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!token || role !== 'doctor') {
+      window.location.href = 'doctor-login.html';
+    }
+
+    document.getElementById('welcomeText').textContent =
+      `Dr. ${user.fullName || user.full_name} (${user.specialization || ''})`;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    });
+
+    // ---------- Fetch doctor's appointments ----------
+    async function loadAppointments() {
+      try {
+        const res = await fetch(`${API_BASE}/doctors/me/appointments`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const appointments = await res.json();
+
+        const container = document.getElementById('appointmentList');
+
+        if (appointments.length === 0) {
+          container.innerHTML = '<p>No appointments booked yet.</p>';
+          return;
+        }
+
+        container.innerHTML = appointments.map(appt => `
+          <div class="appointment-card">
+            <div>
+              <p><strong>Patient:</strong> ${appt.patient_name}</p>
+              <p><strong>Email:</strong> ${appt.patient_email}</p>
+              <p>
+                <strong>Date:</strong> ${new Date(appt.appointment_date).toLocaleDateString()}
+                &nbsp; <strong>Time:</strong> ${appt.appointment_time}
+              </p>
+            </div>
+            <div class="appt-actions">
+              <span class="status-badge status-${appt.status}">${appt.status}</span>
+              <select class="status-select" data-id="${appt.id}">
+                <option value="pending" ${appt.status === 'pending' ? 'selected' : ''}>Pending</option>
+                <option value="confirmed" ${appt.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+                <option value="completed" ${appt.status === 'completed' ? 'selected' : ''}>Completed</option>
+                <option value="cancelled" ${appt.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+              </select>
+            </div>
+          </div>
+        `).join('');
+
+        // Attach status-change handlers
+        document.querySelectorAll('.status-select').forEach(select => {
+          select.addEventListener('change', async (e) => {
+            const appointmentId = e.target.dataset.id;
+            const newStatus = e.target.value;
+            await updateStatus(appointmentId, newStatus);
+          });
+        });
+      } catch (err) {
+        document.getElementById('appointmentList').innerHTML = '<p>Failed to load appointments.</p>';
+      }
+    }
+
+    // ---------- Update appointment status ----------
+    async function updateStatus(appointmentId, status) {
+      try {
+        const res = await fetch(`${API_BASE}/appointments/${appointmentId}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status }),
+        });
+        if (!res.ok) throw new Error('Failed to update status');
+        loadAppointments(); // refresh to show updated badge
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    loadAppointments();
+  </script>
+</body>
+</html>
