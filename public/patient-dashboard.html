@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Dashboard - MediCare Clinic</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="logo">🩺 MediCare Clinic</div>
+    <div class="nav-buttons">
+      <span id="welcomeText" class="welcome-text"></span>
+      <button id="logoutBtn" class="btn btn-outline">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard-container">
+    <h1>Book an Appointment</h1>
+    <p class="dashboard-subtitle">Choose a doctor and select your preferred date & time</p>
+
+    <div id="doctorList" class="doctor-grid">
+      <p>Loading doctors...</p>
+    </div>
+
+    <hr class="section-divider" />
+
+    <h2>My Appointments</h2>
+    <div id="appointmentList" class="appointment-list">
+      <p>Loading your appointments...</p>
+    </div>
+  </div>
+
+  <!-- Booking Modal -->
+  <div id="bookingModal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-btn" data-close="bookingModal">&times;</span>
+      <h2>Book with <span id="modalDoctorName"></span></h2>
+      <div id="bookingError" class="error-msg"></div>
+
+      <form id="bookingForm">
+        <input type="hidden" id="selectedDoctorId" />
+        <div class="form-group">
+          <label for="appointmentDate">Date</label>
+          <input type="date" id="appointmentDate" required />
+        </div>
+        <div class="form-group">
+          <label for="appointmentTime">Time</label>
+          <input type="time" id="appointmentTime" required />
+        </div>
+        <button type="submit" class="btn btn-filled auth-btn">Confirm Booking</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // ---------- Guard: must be logged in as patient ----------
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    if (!token || role !== 'patient') {
+      window.location.href = 'patient-login.html';
+    }
+
+    document.getElementById('welcomeText').textContent = `Welcome, ${user.fullName || user.full_name}`;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    });
+
+    // ---------- Fetch and render doctors ----------
+    async function loadDoctors() {
+      try {
+        const res = await fetch(`${API_BASE}/doctors`);
+        const doctors = await res.json();
+
+        const container = document.getElementById('doctorList');
+        if (doctors.length === 0) {
+          container.innerHTML = '<p>No doctors available yet.</p>';
+          return;
+        }
+
+        container.innerHTML = doctors.map(doc => `
+          <div class="doctor-card">
+            <h3>${doc.full_name}</h3>
+            <p class="doctor-spec">${doc.specialization}</p>
+            <p class="doctor-exp">${doc.years_experience} years experience</p>
+            <button class="btn btn-filled book-btn" data-id="${doc.id}" data-name="${doc.full_name}">
+              Book Appointment
+            </button>
+          </div>
+        `).join('');
+
+        // Attach click handlers after rendering
+        document.querySelectorAll('.book-btn').forEach(btn => {
+          btn.addEventListener('click', () => openBookingModal(btn.dataset.id, btn.dataset.name));
+        });
+      } catch (err) {
+        document.getElementById('doctorList').innerHTML = '<p>Failed to load doctors.</p>';
+      }
+    }
+
+    // ---------- Fetch and render my appointments ----------
+    async function loadMyAppointments() {
+      try {
+        const res = await fetch(`${API_BASE}/appointments/mine`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const appointments = await res.json();
+
+        const container = document.getElementById('appointmentList');
+        if (appointments.length === 0) {
+          container.innerHTML = '<p>You have no appointments yet.</p>';
+          return;
+        }
+
+        container.innerHTML = appointments.map(appt => `
+          <div class="appointment-card">
+            <p><strong>Doctor:</strong> ${appt.doctor_name} (${appt.specialization})</p>
+            <p><strong>Date:</strong> ${new Date(appt.appointment_date).toLocaleDateString()} &nbsp; <strong>Time:</strong> ${appt.appointment_time}</p>
+            <span class="status-badge status-${appt.status}">${appt.status}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('appointmentList').innerHTML = '<p>Failed to load appointments.</p>';
+      }
+    }
+
+    // ---------- Booking modal logic ----------
+    const bookingModal = document.getElementById('bookingModal');
+
+    function openBookingModal(doctorId, doctorName) {
+      document.getElementById('selectedDoctorId').value = doctorId;
+      document.getElementById('modalDoctorName').textContent = doctorName;
+      document.getElementById('bookingError').style.display = 'none';
+      bookingModal.classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.close-btn').forEach(btn => {
+      btn.addEventListener('click', () => bookingModal.classList.add('hidden'));
+    });
+
+    window.addEventListener('click', (e) => {
+      if (e.target === bookingModal) bookingModal.classList.add('hidden');
+    });
+
+    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const doctorId = document.getElementById('selectedDoctorId').value;
+      const appointmentDate = document.getElementById('appointmentDate').value;
+      const appointmentTime = document.getElementById('appointmentTime').value;
+
+      try {
+        const res = await fetch(`${API_BASE}/appointments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ doctorId, appointmentDate, appointmentTime }),
+        });
+        const result = await res.json();
+
+        if (!res.ok) {
+          throw new Error(result.message || 'Booking failed');
+        }
+
+        bookingModal.classList.add('hidden');
+        document.getElementById('bookingForm').reset();
+        loadMyAppointments(); // refresh list
+      } catch (err) {
+        const errBox = document.getElementById('bookingError');
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+      }
+    });
+
+    // ---------- Init ----------
+    loadDoctors();
+    loadMyAppointments();
+  </script>
+</body>
+</html>
